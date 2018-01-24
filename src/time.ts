@@ -1,8 +1,8 @@
 import * as Rx from 'rxjs';
 
-import { game } from './game';
+import { update$ } from './game';
 
-export const t$ = game.update$
+export const t$ = update$
   .timestamp()
   .map(({timestamp}) => timestamp)
   .share()

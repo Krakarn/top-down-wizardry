@@ -1,6 +1,6 @@
 import * as Rx from 'rxjs';
 
-import { _window } from './window';
+import { keyDown$, keyUp$ } from './window';
 
 export interface IKeyInput {
   up$: Rx.Observable<KeyboardEvent>;
@@ -17,8 +17,8 @@ export interface IInput {
 }
 
 const key = (keyCode: number): IKeyInput => {
-  const up$ = _window.keyUp$.filter(e => e.keyCode === keyCode);
-  const down$ = _window.keyDown$.filter(e => e.keyCode === keyCode);
+  const up$ = keyUp$.filter(e => e.keyCode === keyCode);
+  const down$ = keyDown$.filter(e => e.keyCode === keyCode);
 
   const downNonRepeat$ = down$
     .throttle(e => up$.map(e => 0))

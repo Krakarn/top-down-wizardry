@@ -1,15 +1,10 @@
 import * as Rx from 'rxjs';
 
 import { IEntity } from './entity';
-import { game } from './game';
+import { game$ } from './game';
 import { gamepad$ } from './gamepad';
-import { input } from './input';
 import { IPoint } from './point';
 import { dt$, accumulateDt } from './time';
-
-export interface IPlayer {
-  entity$: Rx.Observable<IEntity>;
-}
 
 const speed = 150;
 
@@ -106,7 +101,7 @@ const shootDirection$ = Rx.Observable
 
 const shootAction$ = shootDirection$
   .withLatestFrom(
-    game.game$,
+    game$,
     position$,
     (direction, game, position) => ({game, direction, position}),
   )
@@ -128,7 +123,7 @@ const shoot$ = shootCooldown$
 
 const playerSprite$ = Rx.Observable
   .combineLatest(
-    game.game$,
+    game$,
     position$.first(),
   )
   .map(([game, position]) => {
@@ -162,12 +157,8 @@ const player$ = Rx.Observable
   .map(_ => void 0)
 ;
 
-const entity$ = Rx.Observable
+export const entity$ = Rx.Observable
   .of({
     sideEffects$: player$,
   } as IEntity)
 ;
-
-export const player: IPlayer = {
-  entity$,
-};

@@ -5,13 +5,10 @@ import 'phaser';
 import * as Rx from 'rxjs';
 
 import { IEntity } from './entity';
-import { game } from './game';
-import { player } from './player';
-import { IPoint } from './point';
+import { preload$, create$ } from './game';
+import { entity$ } from './player';
 
-import { _window } from './window';
-
-const loadSpritesheet$ = game.preload$
+const loadSpritesheet$ = preload$
   .do(game => {
     game.load.spritesheet(
       'player',
@@ -36,7 +33,7 @@ const loadSpritesheet$ = game.preload$
   })
 ;
 
-const initializeGame$ = game.create$
+const initializeGame$ = create$
   .do(game => {
     game.physics.startSystem(Phaser.Physics.ARCADE);
     game.stage.backgroundColor = '#7A6AdA';
@@ -48,8 +45,7 @@ interface ISpace {
   entities: IEntity[];
 }
 
-const stage$ = game
-  .create$
+const stage$ = create$
   .do(game => {
     const map = game.add.tilemap('tilemap');
     map.addTilesetImage('tileset2', 'tiles');
@@ -63,7 +59,7 @@ const currentStage$ = stage$;
 
 const currentEntities$ = Rx.Observable
   .timer(1000)
-  .switchMap(_ => player.entity$)
+  .switchMap(_ => entity$)
   .map(player => [player])
 ;
 
