@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "lib": [
+      "es5",
+      "es6",
+      "dom",
+      "scripthost",
+      "es2015.iterable"
+    ],
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "experimentalDecorators": true
+  },
+  "files": [
+    "./src/index.ts",
+    "./node_modules/phaser-ce/typescript/phaser.comments.d.ts"
+  ]
+}
