@@ -6,7 +6,8 @@ import * as Rx from 'rxjs';
 
 import { IEntity } from './entity';
 import { preload$, create$ } from './game';
-import { entity$ } from './player';
+import { entity$ as slime$ } from './creatures/slime';
+import { entity$ as player$ } from './player';
 
 const loadSpritesheet$ = preload$
   .do(game => {
@@ -20,6 +21,12 @@ const loadSpritesheet$ = preload$
       'arcane-ball',
       'assets/sprites/sprites.png',
       32,32,9,0,0,1
+    );
+
+    game.load.spritesheet(
+      'slime',
+      'assets/sprites/slime.png',
+      32,32,3
     );
 
     game.load.image('tiles', 'assets/tilemaps/tiles/tiles.png');
@@ -58,9 +65,7 @@ const stage$ = create$
 const currentStage$ = stage$;
 
 const currentEntities$ = Rx.Observable
-  .timer(1000)
-  .switchMap(_ => entity$)
-  .map(player => [player])
+  .combineLatest(player$, slime$)
 ;
 
 const currentSpace$ = Rx.Observable
@@ -71,8 +76,9 @@ const currentSpace$ = Rx.Observable
   .map(([stage, entities]) => ({stage, entities}))
 ;
 
-const currentEntitiesSideEffects$ = currentEntities$
+const currentEntitiesSideEffecst$ = currentEntities$
   .switchMap(entities => Rx.Observable.from(entities.map(e => e.sideEffects$)))
+  .delay(1000)
   .mergeAll()
 ;
 
@@ -80,7 +86,7 @@ const sideEffects$ = Rx.Observable
   .merge(
     loadSpritesheet$,
     initializeGame$,
-    currentEntitiesSideEffects$,
+    currentEntitiesSideEffecst$,
     currentSpace$,
   )
 ;

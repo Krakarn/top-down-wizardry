@@ -1,9 +1,11 @@
 import * as Rx from 'rxjs';
 
 import { IEntity } from './entity';
-import { game$ } from './game';
+import { create$, game$ } from './game';
 import { gamepad$ } from './gamepad';
-import { IPoint } from './point';
+import { move } from './physics/move';
+import { IPoint } from './physics/point';
+import { position } from './physics/position';
 import { dt$, accumulateDt } from './time';
 
 const speed = 150;
@@ -38,20 +40,7 @@ const velocity$: Rx.Observable<IPoint> = Rx.Observable
   )
 ;
 
-const position$: Rx.Observable<IPoint> = dt$
-  .withLatestFrom(
-    velocity$,
-    (dt, v) => ({v, dt})
-  )
-  .scan((acc, {v, dt}) =>
-    ({x: acc.x + v.x * dt, y: acc.y + v.y * dt}),
-    {x: 0, y: 0},
-  )
-  .bufferCount(2, 1)
-  .filter(([op, np]) => op.x !== np.x || op.y !== np.y)
-  .map(([op, np]) => np)
-  .startWith({x: 0, y: 0})
-;
+const position$: Rx.Observable<IPoint> = position(velocity$);
 
 const spawnShot = (
   game: Phaser.Game,
@@ -119,7 +108,7 @@ const shoot$ = shootCooldown$
 
 const playerSprite$ = Rx.Observable
   .combineLatest(
-    game$,
+    create$,
     position$.first(),
   )
   .map(([game, position]) => {
@@ -135,17 +124,9 @@ const playerSprite$ = Rx.Observable
   })
 ;
 
-const move$ = playerSprite$
-  .switchMap(sprite => position$.map(position => ({sprite, position})))
-  .do(
-    ({sprite, position}) => {
-      sprite.body.position.x = position.x;
-      sprite.body.position.y = position.y;
-    }
-  )
-;
+const move$ = move(playerSprite$, position$);
 
-const player$ = Rx.Observable
+const sideEffects$ = Rx.Observable
   .merge(
     shoot$,
     move$,
@@ -154,7 +135,5 @@ const player$ = Rx.Observable
 ;
 
 export const entity$ = Rx.Observable
-  .of({
-    sideEffects$: player$,
-  } as IEntity)
+  .of({sideEffects$} as IEntity)
 ;

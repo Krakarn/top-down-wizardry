@@ -22,7 +22,7 @@ const gameInstance$ = load$
 ;
 
 export const game$ = Rx.Observable
-  .defer(() => {
+  .defer<Phaser.Game>(() => {
     if (gameInstance) {
       return Rx.Observable.of(gameInstance);
     } else {
