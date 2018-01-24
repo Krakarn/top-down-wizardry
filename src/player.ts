@@ -33,16 +33,12 @@ const velocity$: Rx.Observable<IPoint> = Rx.Observable
     inputX$,
     inputY$,
   )
-  .map(([x, y]) => {
-    if (isNotInDeadzone(x, y)) {
-      return {x: x * speed, y: y * speed};
-    } else {
-      return {x: 0, y: 0};
-    }
-  })
+  .map(([x, y]) =>
+    isNotInDeadzone(x, y) ? {x: x * speed, y: y * speed} : {x: 0, y: 0}
+  )
 ;
 
-const position$ = dt$
+const position$: Rx.Observable<IPoint> = dt$
   .withLatestFrom(
     velocity$,
     (dt, v) => ({v, dt})

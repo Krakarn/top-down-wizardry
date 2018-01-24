@@ -63,7 +63,7 @@ const currentEntities$ = Rx.Observable
   .map(player => [player])
 ;
 
-const space$ = Rx.Observable
+const currentSpace$ = Rx.Observable
   .combineLatest(
     currentStage$,
     currentEntities$,
@@ -72,9 +72,7 @@ const space$ = Rx.Observable
 ;
 
 const currentEntitiesSideEffects$ = currentEntities$
-  .switchMap(entities =>
-    Rx.Observable.from(entities.map(e => e.sideEffects$))
-  )
+  .switchMap(entities => Rx.Observable.from(entities.map(e => e.sideEffects$)))
   .mergeAll()
 ;
 
@@ -83,7 +81,7 @@ const sideEffects$ = Rx.Observable
     loadSpritesheet$,
     initializeGame$,
     currentEntitiesSideEffects$,
-    space$,
+    currentSpace$,
   )
 ;
 
