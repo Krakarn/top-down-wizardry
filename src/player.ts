@@ -2,11 +2,11 @@ import * as Rx from 'rxjs';
 
 import { IEntity } from './entity';
 import { create$, game$ } from './game';
-import { gamepad$ } from './gamepad';
+import { gamepad$ } from './input/gamepad';
 import { move } from './physics/move';
 import { IPoint } from './physics/point';
 import { position } from './physics/position';
-import { dt$, accumulateDt } from './time';
+import { accumulateDt, dt$ } from './time';
 
 const speed = 150;
 

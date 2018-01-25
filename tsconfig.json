@@ -7,7 +7,7 @@
       "es6",
       "dom",
       "scripthost",
-      "es2015.iterable"
+      "es2015"
     ],
     "noImplicitAny": true,
     "sourceMap": true,

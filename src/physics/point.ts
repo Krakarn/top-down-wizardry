@@ -1,1 +1,4 @@
-export type IPoint = {x: number, y: number};
+export interface IPoint {
+  x: number;
+  y: number;
+}

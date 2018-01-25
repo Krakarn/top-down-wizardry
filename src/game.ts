@@ -1,7 +1,7 @@
 import * as Rx from 'rxjs';
 
+import { load$ } from './dom/window';
 import { gameOptions$, IGameOptions } from './game-options';
-import { load$ } from './window';
 
 const spawnGame = (gameOptions: IGameOptions) =>
   new Phaser.Game(

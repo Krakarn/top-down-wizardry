@@ -1,12 +1,13 @@
 import 'p2';
 import 'pixi';
+
 import 'phaser';
 
 import * as Rx from 'rxjs';
 
-import { IEntity } from './entity';
-import { preload$, create$ } from './game';
 import { entity$ as slime$ } from './creatures/slime';
+import { IEntity } from './entity';
+import { create$, preload$ } from './game';
 import { entity$ as player$ } from './player';
 
 const loadSpritesheet$ = preload$

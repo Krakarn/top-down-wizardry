@@ -1,7 +1,7 @@
 import * as Rx from 'rxjs';
 
-import { IPoint } from './point';
 import { dt$ } from '../time';
+import { IPoint } from './point';
 
 export const position = (
   velocity$: Rx.Observable<IPoint>,
