@@ -7,7 +7,7 @@ import * as Rx from 'rxjs';
 
 import { entity$ as slime$ } from './creatures/slime';
 import { IEntity } from './entity';
-import { create$, preload$ } from './game';
+import { create$, game$, preload$, update$ } from './game';
 import { entity$ as player$ } from './player';
 
 const loadSpritesheet$ = preload$
@@ -65,8 +65,8 @@ const stage$ = create$
 
 const currentStage$ = stage$;
 
-const currentEntities$ = Rx.Observable
-  .combineLatest(player$, slime$)
+const currentEntities$ = update$.first()
+  .switchMap(_ => Rx.Observable.combineLatest(player$, slime$))
 ;
 
 const currentSpace$ = Rx.Observable
@@ -77,9 +77,18 @@ const currentSpace$ = Rx.Observable
   .map(([stage, entities]) => ({stage, entities}))
 ;
 
-const currentEntitiesSideEffecst$ = currentEntities$
-  .switchMap(entities => Rx.Observable.from(entities.map(e => e.sideEffects$)))
-  .delay(1000)
+const currentEntitiesSideEffects$ = Rx.Observable
+  .combineLatest(
+    game$,
+    currentEntities$,
+  )
+  .switchMap(([game, entities]) => {
+    game.physics.arcade.overlap(entities[0].sprite, entities[1].sprite, () => {
+      console.log('overlapping');
+    });
+
+    return Rx.Observable.from(entities.map(e => e.sideEffects$));
+  })
   .mergeAll()
 ;
 
@@ -87,7 +96,7 @@ const sideEffects$ = Rx.Observable
   .merge(
     loadSpritesheet$,
     initializeGame$,
-    currentEntitiesSideEffecst$,
+    currentEntitiesSideEffects$,
     currentSpace$,
   )
 ;

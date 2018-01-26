@@ -2,7 +2,7 @@ import * as Rx from 'rxjs';
 
 import { IEntity } from './entity';
 import { create$, game$ } from './game';
-import { gamepad$ } from './input/gamepad';
+import { gamepad } from './input/gamepad';
 import { move } from './physics/move';
 import { IPoint } from './physics/point';
 import { position } from './physics/position';
@@ -10,34 +10,15 @@ import { accumulateDt, dt$ } from './time';
 
 const speed = 150;
 
-const inputX$ = gamepad$
-  .map(gamepad => gamepad.axes[0])
-;
+const gamepad$ = gamepad(Rx.Observable.of({
+  sticks: [{ deadzone: 0.5 }, { deadzone: 0.5 }],
+}));
 
-const inputY$ = gamepad$
-  .map(gamepad => gamepad.axes[1])
-;
+const leftStick$ = gamepad$.switchMap(gamepad => gamepad.sticks[0]);
+const rightStick$ = gamepad$.switchMap(gamepad => gamepad.sticks[1]);
 
-const inputX2$ = gamepad$
-  .map(gamepad => gamepad.axes[2])
-;
-
-const inputY2$ = gamepad$
-  .map(gamepad => gamepad.axes[3])
-;
-
-const isNotInDeadzone = (x: number, y: number) =>
-  Math.abs(x) + Math.abs(y) > 0.5
-;
-
-const velocity$: Rx.Observable<IPoint> = Rx.Observable
-  .combineLatest(
-    inputX$,
-    inputY$,
-  )
-  .map(([x, y]) =>
-    isNotInDeadzone(x, y) ? {x: x * speed, y: y * speed} : {x: 0, y: 0}
-  )
+const velocity$: Rx.Observable<IPoint> = leftStick$
+  .map(({x, y}) => ({x: x * speed, y: y * speed}))
 ;
 
 const position$: Rx.Observable<IPoint> = position(velocity$);
@@ -75,13 +56,9 @@ const spawnShot = (
   ;
 };
 
-const shootDirection$ = Rx.Observable
-  .combineLatest(
-    inputX2$,
-    inputY2$,
-  )
-  .filter(([x, y]) => isNotInDeadzone(x, y))
-  .map(([x, y]) => Math.atan2(y, x))
+const shootDirection$ = rightStick$
+  .filter(({x, y}) => x !== 0 && y !== 0)
+  .map(({x, y}) => Math.atan2(y, x))
 ;
 
 const shootAction$ = shootDirection$
