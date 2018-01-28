@@ -5,7 +5,7 @@ import 'phaser';
 
 import * as Rx from 'rxjs';
 
-import { entity$ as slime$ } from './creatures/slime';
+import { enemies$, updateEnemyGroup$ } from './enemies';
 import { IEntity } from './entity';
 import { create$, game$, preload$, update$ } from './game';
 import { entity$ as player$ } from './player';
@@ -48,11 +48,6 @@ const initializeGame$ = create$
   })
 ;
 
-interface ISpace {
-  stage: Phaser.Tilemap;
-  entities: IEntity[];
-}
-
 const stage$ = create$
   .do(game => {
     const map = game.add.tilemap('tilemap');
@@ -65,39 +60,26 @@ const stage$ = create$
 
 const currentStage$ = stage$;
 
-const currentEntities$ = update$.first()
-  .switchMap(_ => Rx.Observable.combineLatest(player$, slime$))
-;
-
-const currentSpace$ = Rx.Observable
-  .combineLatest(
-    currentStage$,
-    currentEntities$,
+// enemy.sideEffects$ in the mergeMap
+// seems to not be reduced in number of observables
+// even though they are completed (I think)
+// needs further investigation as to avoid memory leak here
+const entitiesSideEffects$ = update$.first()
+  .switchMap(_ =>
+    Rx.Observable.merge(
+      player$.switchMap(player => player.sideEffects$),
+      enemies$.mergeMap(enemy => enemy.sideEffects$),
+    )
   )
-  .map(([stage, entities]) => ({stage, entities}))
-;
-
-const currentEntitiesSideEffects$ = Rx.Observable
-  .combineLatest(
-    game$,
-    currentEntities$,
-  )
-  .switchMap(([game, entities]) => {
-    game.physics.arcade.overlap(entities[0].sprite, entities[1].sprite, () => {
-      console.log('overlapping');
-    });
-
-    return Rx.Observable.from(entities.map(e => e.sideEffects$));
-  })
-  .mergeAll()
 ;
 
 const sideEffects$ = Rx.Observable
   .merge(
     loadSpritesheet$,
     initializeGame$,
-    currentEntitiesSideEffects$,
-    currentSpace$,
+    entitiesSideEffects$,
+    currentStage$,
+    updateEnemyGroup$,
   )
 ;
 

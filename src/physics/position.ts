@@ -5,6 +5,7 @@ import { IPoint } from './point';
 
 export const position = (
   velocity$: Rx.Observable<IPoint>,
+  startingPoint: IPoint = {x: 0, y: 0},
 ): Rx.Observable<IPoint> => dt$
   .withLatestFrom(
     velocity$,
@@ -12,10 +13,10 @@ export const position = (
   )
   .scan((acc, {v, dt}) =>
     ({x: acc.x + v.x * dt, y: acc.y + v.y * dt}),
-    {x: 0, y: 0},
+    {...startingPoint},
   )
-  .bufferCount(2, 1)
-  .filter(([op, np]) => op.x !== np.x || op.y !== np.y)
-  .map(([op, np]) => np)
-  .startWith({x: 0, y: 0})
+  .startWith({...startingPoint})
+  .distinctUntilChanged(
+    (p1, p2) => p1.x === p2.x && p1.y === p2.y
+  )
 ;

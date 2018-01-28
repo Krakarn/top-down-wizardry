@@ -1,13 +1,15 @@
 import * as Rx from 'rxjs';
 
 import { IEntity } from './entity';
-import { create$, game$ } from './game';
+import { game$, update$ } from './game';
 import { gamepad } from './input/gamepad';
 import { key, keys } from './input/keyboard';
 import { move } from './physics/move';
 import { IPoint } from './physics/point';
 import { position } from './physics/position';
 import { accumulateDt, dt$ } from './time';
+
+import { enemyGroup$ } from './enemies';
 
 const speed = 150;
 
@@ -30,6 +32,7 @@ const keyS = key(keys.s);
 
 const velocityFromGamepad$: Rx.Observable<IPoint> = leftStick$
   .map(({x, y}) => ({x: x * speed, y: y * speed}))
+  .distinctUntilChanged((v1, v2) => v1.x === v2.x && v1.y === v2.y)
 ;
 
 const velocityXFromKeyboard$ = Rx.Observable
@@ -74,11 +77,12 @@ const position$: Rx.Observable<IPoint> = position(velocity$);
 
 const spawnShot = (
   game: Phaser.Game,
+  group: Phaser.Group,
   x: number,
   y: number,
-  d: number
+  d: number,
 ): Rx.Observable<void> => {
-  const shot = game.add.sprite(x, y, 'arcane-ball');
+  const shot = new Phaser.Sprite(game, x, y, 'arcane-ball');
   shot.anchor.setTo(0.5, 0.5);
 
   game.physics.enable(shot, Phaser.Physics.ARCADE);
@@ -89,6 +93,8 @@ const spawnShot = (
   shot.rotation = d;
   game.physics.arcade.velocityFromRotation(shot.rotation, 150, shot.body.velocity);
   shot.animations.play('idle', 15, true);
+
+  group.add(shot);
 
   return accumulateDt(3)
     .do(() => {
@@ -147,11 +153,20 @@ const shootDirection$ = Rx.Observable
   .map(({x, y}) => Math.atan2(y, x))
 ;
 
+const shotGroup$ = update$.first()
+  .map(game => game.add.group())
+  .publishReplay(1)
+;
+
+shotGroup$.connect();
+
 const shootAction$ = shootDirection$
   .withLatestFrom(
     game$,
+    shotGroup$,
     position$,
-    (direction, game, position) => ({game, direction, position}),
+    (direction, game, group, position) =>
+      ({game, group, direction, position}),
   )
 ;
 
@@ -164,39 +179,61 @@ const shoot$ = shootCooldown$
     shootAction$,
     (_, shootAction) => shootAction,
   )
-  .mergeMap(({game, direction, position}) =>
-    spawnShot(game, position.x, position.y, direction)
+  .mergeMap(({game, group, direction, position}) =>
+    spawnShot(game, group, position.x, position.y, direction)
   )
 ;
 
-const playerSprite$ = Rx.Observable
+const sprite$ = Rx.Observable
   .combineLatest(
-    create$,
+    update$.first(),
     position$.first(),
   )
   .map(([game, position]) => {
-    const playerSprite = game.add.sprite(position.x, position.y, 'player');
-    game.physics.enable(playerSprite, Phaser.Physics.ARCADE);
+    const sprite = game.add.sprite(position.x, position.y, 'player');
+    game.physics.enable(sprite, Phaser.Physics.ARCADE);
 
-    playerSprite.animations.add('idle', [0]);
-    playerSprite.animations.play('idle', 50, true);
+    sprite.animations.add('idle', [0]);
+    sprite.animations.play('idle', 50, true);
 
-    game.camera.follow(playerSprite);
+    game.camera.follow(sprite);
 
-    return playerSprite;
+    return sprite;
+  })
+  .publishReplay(1)
+;
+
+sprite$.connect();
+
+const shotCollision$ = Rx.Observable
+  .combineLatest(
+    update$,
+    shotGroup$,
+    enemyGroup$,
+  )
+  .do(([game, shotGroup, enemyGroup]) => {
+    game.physics.arcade.overlap(
+      shotGroup,
+      enemyGroup,
+      (shot: Phaser.Sprite, enemy: Phaser.Sprite) => {
+        enemy.kill();
+        shot.kill();
+      }
+    );
   })
 ;
 
-const move$ = move(playerSprite$, position$);
+const move$ = move(sprite$, position$);
 
 const sideEffects$ = Rx.Observable
   .merge(
     shoot$,
     move$,
+    shotCollision$,
   )
   .map(_ => void 0)
 ;
 
-export const entity$ = Rx.Observable
-  .of({sideEffects$} as IEntity)
+export const entity$: Rx.Observable<IEntity> = sprite$
+  .switchMap(sprite => Rx.Observable.of({sprite, sideEffects$}))
 ;
