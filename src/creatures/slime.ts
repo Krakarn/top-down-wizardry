@@ -13,10 +13,14 @@ export const slime = (
 
   const position$ = position(velocity$, startingPosition);
 
-  const spriteKilled$ = new Rx.Subject<Phaser.Sprite>();
+  let cachedSprite: Phaser.Sprite;
 
   const sprite$ = update$.first()
     .map(game => {
+      if (cachedSprite) {
+        return cachedSprite;
+      }
+
       const sprite = new Phaser.Sprite(
         game,
         startingPosition.x,
@@ -28,17 +32,23 @@ export const slime = (
       sprite.animations.add('idle', [0,1,2,1], 5, true);
       sprite.animations.play('idle');
 
-      sprite.events.onKilled.add(() => {
-        spriteKilled$.next(sprite);
-        sprite.destroy();
-      });
+      cachedSprite = sprite;
 
       return sprite;
     })
-    .publishReplay(1)
   ;
 
-  sprite$.connect();
+  const phaserSignalToObservable = (signal: Phaser.Signal) =>
+    Rx.Observable.fromEventPattern(
+      handler => signal.add(handler),
+      handler => signal.remove(handler),
+    )
+  ;
+
+  const spriteKilled$ = sprite$
+    .switchMap(sprite => phaserSignalToObservable(sprite.events.onKilled))
+    .do(x => console.log('sprite killed', x))
+  ;
 
   const move$ = move(sprite$, position$);
 

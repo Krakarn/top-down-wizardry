@@ -7,9 +7,10 @@ import { update$ } from './game';
 const slimes$ = Rx.Observable
   .interval(500)
   .mergeMap(x => slime(
-    Rx.Observable.of({x: 0, y: 0}),
+    Rx.Observable.of({x: Math.random() * 40 - 20, y: Math.random() * 40 - 20}),
     {x: Math.random() * 600, y: Math.random() * 450},
   ))
+  .share()
 ;
 
 export const enemies$: Rx.Observable<IEntity> = slimes$;
